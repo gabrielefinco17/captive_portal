@@ -1,5 +1,7 @@
 - GET NAME (given a token)
 
+- MEETING CREATION
+
 - PROPOSAL CREATION (principal only)
 
 - PROPOSAL VOTE (teacher)
