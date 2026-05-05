@@ -48,22 +48,35 @@ app = FastAPI(title="Captive Portal 5D")
 
 @app.post("/login")
 def login(request: Request, response: Response):
+    try:
+        cursor.execute(
+            """
+            SELECT code
+            FROM token 
+            WHERE code = %s
+            """,
+            [request.token],
+        )
+        res = cursor.fetchone()
 
-    cursor.execute(
-        """
-        SELECT code
-        FROM token 
-        WHERE code = %s
-        """,
-        [request.token],
-    )
-    res = cursor.fetchone()[0]
-
-    if res is not None:
-        response.set_cookie(key="token_session", value=str(request.token))
-        return {"message": "OK"}
-    else:
-        return {"error": "Invalid Token"}
+        if res is not None:
+            cursor.execute(
+                """
+                INSERT INTO participation(meeting_id, user_email)
+                    SELECT meeting_id, user_email
+                    FROM token
+                    WHERE code = %s
+                """,
+                [request.token],
+            )
+            cursor.connection.commit()
+            response.set_cookie(key="token_session", value=str(request.token))
+            return {"message": "OK"}
+        else:
+            return {"error": "Invalid Token"}
+    except Exception as e:
+        print(f"[ERROR] /login: {e}") #stampa del log dell'errore
+        return {"errore": "Internal server error"}
 
 
 @app.get("/test")
