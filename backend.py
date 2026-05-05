@@ -1,3 +1,7 @@
+from rich._win32_console import SetConsoleCursorPosition
+from psycopg2 import cursor
+from psycopg2 import cursor
+from psycopg2 import cursor
 from typing import Literal
 
 import psycopg2
@@ -76,3 +80,35 @@ def test():
     )
     # conn.commit()
     return cursor.fetchall()
+
+
+@app.get("/proposal/{id}/stats")
+def proposal_stats(id:int):
+    cursor.execute(
+        """
+        SELECT p.id,p.title,m.participant_count
+        FROM proposal p 
+        LEFT JOIN meetings m ON p.meeting_id = m.id
+        WHERE p.id = %s
+        ORDER BY p.id
+        """,[id]
+    )
+    return cursor.fetchone()
+
+
+
+@app.get("/meetings/{id}/stats")
+def meetings_stats(id:int):
+    cursor.execute(
+        """
+        SELECT
+            m.id, m.meeting_date, m.start_time,m.end_time,m.president_email, COUNT (p.user_email) as participants
+            FROM meeting m 
+            LEFT JOIN participation p ON m.id = p.meeting_id
+            WHERE m.id = %s
+            GROUP BY m.id
+        """,
+        [id]
+    )
+
+    return cursor.fetchone()
