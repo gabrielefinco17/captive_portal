@@ -90,9 +90,9 @@ CREATE TABLE participation(
 CREATE TABLE vote(
     account_email VARCHAR(40),
     proposal_id INT,
-    preference INT NOT NULL
+    preference INT NOT NULL,
 
-    PRIMARY KEY (account_email, proposal_id)
+    PRIMARY KEY (account_email, proposal_id),
 
     CONSTRAINT preference_options
         CHECK (preference IN ( 0, 1, 2)),
@@ -104,7 +104,7 @@ CREATE TABLE vote(
     CONSTRAINT fk_proposal_id
         FOREIGN KEY (proposal_id)
         REFERENCES proposal(id)
-)
+);
 
 
 -- --------------------------------- ROLES ---------------------------------
@@ -112,8 +112,7 @@ CREATE TABLE vote(
 CREATE ROLE teacher LOGIN PASSWORD 'praga';
 GRANT SELECT ON meeting, proposal, account TO teacher;
 GRANT SELECT, INSERT ON participation TO teacher;
-GRANT UPDATE (vote) ON participation TO teacher;
-
+GRANT SELECT, INSERT ON vote TO teacher;
 
 -- CREATE ROLE secretary LOGIN PASSWORD 'praga';
 -- GRANT SELECT ON meeting, account TO secretary;
