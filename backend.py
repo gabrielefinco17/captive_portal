@@ -25,6 +25,12 @@ class UserRead(BaseModel):
     user_department: str
 
 
+class Meeting_create(BaseModel):
+    meeting_date: str = Field(..., min_length=10)
+    start_time: str = Field(..., min_length=8)
+    end_time: str = Field(min_length=8)
+    president_email: str = Field(..., max_length=40)
+
 # -----------------------------------------------------------
 # DB CONNECTION
 # -----------------------------------------------------------
@@ -33,7 +39,7 @@ global conn, cursor
 conn = psycopg2.connect(
     database="captive_portal",
     user="postgres",
-    password="",
+    password="a",
     host="127.0.0.1",
     port=5432,
 )
@@ -76,3 +82,28 @@ def test():
     )
     # conn.commit()
     return cursor.fetchall()
+
+
+
+
+@app.post("/create_meeting")
+def create_meeting(request: Meeting_create):
+    cursor.execute(
+        """
+        INSERT INTO meeting(
+            meeting_date,
+            start_time,
+            end_time,
+            president_email
+        )
+        VALUES (%s, %s, %s, %s)
+        """,
+        [
+            request.meeting_date,
+            request.start_time,
+            request.end_time,
+            request.president_email,
+        ],
+    )
+    conn.commit()
+    return {"message": "OK"}

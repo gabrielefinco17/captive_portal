@@ -17,7 +17,6 @@ CREATE TABLE meeting(
     meeting_date      DATE NOT NULL,
     start_time        TIME NOT NULL,
     end_time          TIME,
-    participant_count INTEGER DEFAULT 0, -- NOT UPDATED YET (TO-DO in application)
     president_email   VARCHAR(40),
 
     CONSTRAINT fk_president
