@@ -46,7 +46,7 @@ cursor = conn.cursor()
 app = FastAPI(title="Captive Portal 5D")
 
 
-@app.post("/login/")
+@app.post("/login")
 def login(request: Request, response: Response):
 
     cursor.execute(
