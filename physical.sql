@@ -89,9 +89,9 @@ CREATE TABLE participation(
 CREATE TABLE vote(
     account_email VARCHAR(40),
     proposal_id INT,
-    preference INT NOT NULL
+    preference INT NOT NULL,
 
-    PRIMARY KEY (account_email, proposal_id)
+    PRIMARY KEY (account_email, proposal_id),
 
     CONSTRAINT preference_options
         CHECK (preference IN ( 0, 1, 2)),
@@ -104,6 +104,7 @@ CREATE TABLE vote(
         FOREIGN KEY (proposal_id)
         REFERENCES proposal(id)
 );
+
 
 
 -- --------------------------------- ROLES ---------------------------------
