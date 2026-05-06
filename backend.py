@@ -1,7 +1,3 @@
-from rich._win32_console import SetConsoleCursorPosition
-from psycopg2 import cursor
-from psycopg2 import cursor
-from psycopg2 import cursor
 from typing import Literal
 
 import psycopg2

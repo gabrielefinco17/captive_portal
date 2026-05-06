@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: captive_portal_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=captive_portal
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "5432:5432"
+    volumes:
+      # Questo carica automaticamente il tuo file physical.sql all'avvio del database
+      - ./physical.sql:/docker-entrypoint-initdb.d/init.sql
