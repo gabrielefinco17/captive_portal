@@ -102,7 +102,7 @@ def meetings_stats(id:int):
     cursor.execute(
         """
         SELECT
-            m.id, m.meeting_date, m.start_time,m.end_time,m.president_email, COUNT (p.user_email) as participants
+            m.id, m.meeting_date, m.start_time,m.end_time,m.president_email, m.participant_count
             FROM meeting m 
             LEFT JOIN participation p ON m.id = p.meeting_id
             WHERE m.id = %s
