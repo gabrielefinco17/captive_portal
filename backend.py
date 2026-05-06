@@ -1,7 +1,7 @@
 from typing import Literal
 
 import psycopg2
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Header
 from pydantic import BaseModel, Field
 
 
@@ -75,9 +75,26 @@ def login(request: Request, response: Response):
         else:
             return {"error": "Invalid Token"}
     except Exception as e:
-        print(f"[ERROR] /login: {e}") #stampa del log dell'errore
+        print(f"[ERROR] /login: {e}")
         return {"errore": "Internal server error"}
 
+@app.post('/logout')
+def logout(authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+    try:
+        cursor.execute(
+            """
+                    UPDATE token 
+                    SET expires_at = NOW() 
+                    WHERE code = %s
+                """,
+            [token],
+        )
+        cursor.connection.commit()
+    except Exception as e:
+        cursor.connection.rollback()
+        print(f"[ERROR] /login: {e}")
+        return {"errore": "Internal server error"}
 
 @app.get("/test")
 def test():
