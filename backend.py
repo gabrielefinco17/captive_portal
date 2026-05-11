@@ -31,6 +31,14 @@ class Meeting_create(BaseModel):
     end_time: str = Field(min_length=8)
     president_email: str = Field(..., max_length=40)
 
+
+class Proposal_create(BaseModel):
+    title: str = Field(..., min_length=1)
+    proposal_description: str = Field(..., min_length=1)
+    attachment: str 
+    meeting_id: int = Field(..., gt=0)
+
+
 # -----------------------------------------------------------
 # DB CONNECTION
 # -----------------------------------------------------------
@@ -107,3 +115,104 @@ def create_meeting(request: Meeting_create):
     )
     conn.commit()
     return {"message": "OK"}
+
+
+@app.post("/create_proposal")
+def create_proposal(request: Proposal_create):
+    cursor.execute(
+        """
+        INSERT INTO proposal(
+            title,
+            proposal_description,
+            attachment,
+            meeting_id
+        )
+        VALUES (%s, %s, %s, %s)
+        """,
+        [
+            request.title,
+            request.proposal_description,
+            request.attachment,
+            request.meeting_id,
+        ],
+    )
+    conn.commit()
+    return {"message": "OK"}
+
+@app.put("/update_proposal")
+def update_proposal(request: Proposal_create, id : int):
+    cursor.execute(
+        """
+        UPDATE proposal
+        SET title = %s,
+            proposal_description = %s,
+            attachment = %s,
+            meeting_id = %s
+        WHERE id = %s
+        """,
+        [
+            request.title,
+            request.proposal_description,
+            request.attachment,
+            request.meeting_id,
+            id,
+        ],
+    )
+    conn.commit()
+    return {"message": "OK"}
+
+
+@app.get("/read_proposal")
+def read_proposal():
+    cursor.execute(
+        """
+        SELECT * 
+        FROM proposal;
+        """
+    )
+    list_tup = cursor.fetchall()
+    for i in range(0, len(list_tup)):
+        list_tup[i] = {
+            "id": list_tup[i][0],
+            "title": list_tup[i][1],
+            "proposal_description": list_tup[i][2],
+            "attachment": list_tup[i][3],
+            "meeting_id": list_tup[i][4]
+        }
+
+    return list_tup
+
+@app.get("/read_proposal/{proposal_id}")
+def read_proposal(proposal_id: int):
+    cursor.execute(
+        f"SELECT * FROM proposal WHERE id = {proposal_id}"
+    )
+    conn.commit()
+    
+    list_tup = cursor.fetchall()
+    list_tup = {
+        "id": list_tup[0][0],
+        "title": list_tup[0][1],
+        "proposal_description": list_tup[0][2],
+        "attachment": list_tup[0][3],
+        "meeting_id": list_tup[0][4]
+    }
+
+    return list_tup
+
+
+@app.get("/meetings/{meeting_id}/proposals")
+def meetings_proposals(meeting_id: int):
+    cursor.execute(
+        f"SELECT p.id, p.title, p.proposal_description, p.attachment, p.meeting_id FROM proposal AS p INNER JOIN meeting AS m ON p.meeting_id = m.id WHERE m.id = {meeting_id}"
+    )
+    list_tup = cursor.fetchall()
+    for i in range(0, len(list_tup)):
+        list_tup[i] = {
+            "id": list_tup[i][0],
+            "title": list_tup[i][1],
+            "proposal_description": list_tup[i][2],
+            "attachment": list_tup[i][3],
+            "meeting_id": list_tup[i][4]
+        }
+    return list_tup
