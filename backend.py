@@ -78,8 +78,8 @@ def test():
     return cursor.fetchall()
 
 
-@app.get("/proposal/{id}/stats")
-def proposal_stats(id:int):
+@app.get("/proposals/{id}/stats")
+def proposals_stats(id: int):
     cursor.execute(
         """
         SELECT p.id,p.title,m.participant_count
@@ -87,14 +87,14 @@ def proposal_stats(id:int):
         LEFT JOIN meetings m ON p.meeting_id = m.id
         WHERE p.id = %s
         ORDER BY p.id
-        """,[id]
+        """,
+        [id],
     )
     return cursor.fetchone()
 
 
-
 @app.get("/meetings/{id}/stats")
-def meetings_stats(id:int):
+def meetings_stats(id: int):
     cursor.execute(
         """
         SELECT
@@ -104,7 +104,8 @@ def meetings_stats(id:int):
             WHERE m.id = %s
             GROUP BY m.id
         """,
-        [id]
+        [id],
     )
 
     return cursor.fetchone()
+
