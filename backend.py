@@ -1,7 +1,7 @@
 from typing import Literal
 
 import psycopg2
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Header, Response
 from pydantic import BaseModel, Field
 
 
@@ -60,24 +60,37 @@ cursor = conn.cursor()
 app = FastAPI(title="Captive Portal 5D")
 
 
-@app.post("/login/")
+@app.post("/login")
 def login(request: Request, response: Response):
+    try:
+        cursor.execute(
+            """
+            SELECT code
+            FROM token 
+            WHERE code = %s
+            """,
+            [request.token],
+        )
+        res = cursor.fetchone()
 
-    cursor.execute(
-        """
-        SELECT code
-        FROM token 
-        WHERE code = %s
-        """,
-        [request.token],
-    )
-    res = cursor.fetchone()[0]
-
-    if res is not None:
-        response.set_cookie(key="token_session", value=str(request.token))
-        return {"message": "OK"}
-    else:
-        return {"error": "Invalid Token"}
+        if res is not None:
+            cursor.execute(
+                """
+                INSERT INTO participation(meeting_id, user_email)
+                    SELECT meeting_id, user_email
+                    FROM token
+                    WHERE code = %s
+                """,
+                [request.token],
+            )
+            cursor.connection.commit()
+            response.set_cookie(key="token_session", value=str(request.token))
+            return {"message": "OK"}
+        else:
+            return {"error": "Invalid Token"}
+    except Exception as e:
+        print(f"[ERROR] /login: {e}")
+        return {"errore": "Internal server error"}
 
 
 @app.get("/test")
@@ -90,8 +103,6 @@ def test():
     )
     # conn.commit()
     return cursor.fetchall()
-
-
 
 
 @app.post("/create_meeting")
@@ -216,3 +227,54 @@ def meetings_proposals(meeting_id: int):
             "meeting_id": list_tup[i][4]
         }
     return list_tup
+
+
+@app.get("/proposals/{id}/stats")
+def proposals_stats(id: int):
+    cursor.execute(
+        """
+        SELECT p.id,p.title,m.participant_count
+        FROM proposal p 
+        LEFT JOIN meetings m ON p.meeting_id = m.id
+        WHERE p.id = %s
+        ORDER BY p.id
+        """,
+        [id],
+    )
+    return cursor.fetchone()
+
+
+@app.get("/meetings/{id}/stats")
+def meetings_stats(id: int):
+    cursor.execute(
+        """
+        SELECT
+            m.id, m.meeting_date, m.start_time,m.end_time,m.president_email, m.participant_count
+            FROM meeting m 
+            LEFT JOIN participation p ON m.id = p.meeting_id
+            WHERE m.id = %s
+            GROUP BY m.id
+        """,
+        [id],
+    )
+
+    return cursor.fetchone()
+
+
+@app.post("/logout")
+def logout(authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+    try:
+        cursor.execute(
+            """
+                    UPDATE token 
+                    SET expires_at = NOW() 
+                    WHERE code = %s
+                """,
+            [token],
+        )
+        cursor.connection.commit()
+    except Exception as e:
+        cursor.connection.rollback()
+        print(f"[ERROR] /login: {e}")
+        return {"errore": "Internal server error"}
