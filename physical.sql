@@ -87,8 +87,8 @@ CREATE TABLE participation(
 
 CREATE TABLE vote(
     account_email VARCHAR(40),
-    proposal_id INT,
-    preference INT NOT NULL,
+    proposal_id   INT,
+    preference    INT NOT NULL,
 
     PRIMARY KEY (account_email, proposal_id),
 
@@ -123,7 +123,6 @@ GRANT SELECT, INSERT ON vote TO teacher;
 CREATE ROLE principal LOGIN PASSWORD 'praga';
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO principal;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO principal;
-
 
 
 --------------------------------------------------
