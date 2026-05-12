@@ -8,7 +8,7 @@ CREATE TABLE account(
     department   VARCHAR(20),
 
     CONSTRAINT check_role
-        CHECK (user_role IN ('docente', 'verbalista', 'dirigente'))
+        CHECK (user_role IN ('docente', 'dirigente'))
 );
 
 
@@ -72,7 +72,7 @@ CREATE TABLE token(
 CREATE TABLE participation(
     meeting_id INTEGER,
     user_email VARCHAR(40),
-    vote       BOOLEAN,
+
     PRIMARY KEY (meeting_id, user_email),
 
     CONSTRAINT fk_participation_meeting
@@ -106,22 +106,19 @@ CREATE TABLE vote(
 );
 
 
-
 -- --------------------------------- ROLES ---------------------------------
 
 CREATE ROLE teacher LOGIN PASSWORD 'praga';
 GRANT SELECT ON meeting, proposal, account TO teacher;
 GRANT SELECT, INSERT ON participation TO teacher;
-GRANT UPDATE (vote) ON participation TO teacher;
-GRANT SELECT ON token TO teacher;                       -- vulnerability
+GRANT SELECT, INSERT ON vote TO teacher;
 
-
-CREATE ROLE secretary LOGIN PASSWORD 'praga';
-GRANT SELECT ON meeting, account TO secretary;
-GRANT SELECT, INSERT ON participation TO secretary;
-GRANT SELECT, INSERT, UPDATE (title, proposal_description, attachment) ON proposal TO secretary;
-GRANT USAGE ON SEQUENCE proposal_id_seq TO secretary;   -- fundamental for INSERT INTO
-GRANT SELECT, INSERT ON token TO secretary;
+-- CREATE ROLE secretary LOGIN PASSWORD 'praga';
+-- GRANT SELECT ON meeting, account TO secretary;
+-- GRANT SELECT, INSERT ON participation TO secretary;
+-- GRANT SELECT, INSERT, UPDATE (title, proposal_description, attachment) ON proposal TO secretary;
+-- GRANT USAGE ON SEQUENCE proposal_id_seq TO secretary;   -- fundamental for INSERT INTO
+-- GRANT SELECT, INSERT ON token TO secretary;
 
 
 CREATE ROLE principal LOGIN PASSWORD 'praga';

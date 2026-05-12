@@ -1,7 +1,7 @@
 from typing import Literal
 
 import psycopg2
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Header, Response
 from pydantic import BaseModel, Field
 
 
@@ -46,24 +46,37 @@ cursor = conn.cursor()
 app = FastAPI(title="Captive Portal 5D")
 
 
-@app.post("/login/")
+@app.post("/login")
 def login(request: Request, response: Response):
+    try:
+        cursor.execute(
+            """
+            SELECT code
+            FROM token 
+            WHERE code = %s
+            """,
+            [request.token],
+        )
+        res = cursor.fetchone()
 
-    cursor.execute(
-        """
-        SELECT code
-        FROM token 
-        WHERE code = %s
-        """,
-        [request.token],
-    )
-    res = cursor.fetchone()[0]
-
-    if res is not None:
-        response.set_cookie(key="token_session", value=str(request.token))
-        return {"message": "OK"}
-    else:
-        return {"error": "Invalid Token"}
+        if res is not None:
+            cursor.execute(
+                """
+                INSERT INTO participation(meeting_id, user_email)
+                    SELECT meeting_id, user_email
+                    FROM token
+                    WHERE code = %s
+                """,
+                [request.token],
+            )
+            cursor.connection.commit()
+            response.set_cookie(key="token_session", value=str(request.token))
+            return {"message": "OK"}
+        else:
+            return {"error": "Invalid Token"}
+    except Exception as e:
+        print(f"[ERROR] /login: {e}")
+        return {"errore": "Internal server error"}
 
 
 @app.get("/test")
@@ -109,3 +122,21 @@ def meetings_stats(id: int):
 
     return cursor.fetchone()
 
+
+@app.post("/logout")
+def logout(authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+    try:
+        cursor.execute(
+            """
+                    UPDATE token 
+                    SET expires_at = NOW() 
+                    WHERE code = %s
+                """,
+            [token],
+        )
+        cursor.connection.commit()
+    except Exception as e:
+        cursor.connection.rollback()
+        print(f"[ERROR] /login: {e}")
+        return {"errore": "Internal server error"}
