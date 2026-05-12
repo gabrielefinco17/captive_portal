@@ -39,6 +39,18 @@ class ProposalCreate(BaseModel):
     meeting_id: int = Field(..., gt=0)
 
 
+class VoteCreate(BaseModel):
+    account_email: str = Field(..., min_length=1, max_length=40)
+    proposal_id: int = Field(..., ge=0)
+    preference: Literal[0, 1, 2]
+
+
+class VoteRead(BaseModel):
+    account_email: str
+    proposal_id: int
+    preference: int
+
+
 # -----------------------------------------------------------
 # DB CONNECTION
 # -----------------------------------------------------------
