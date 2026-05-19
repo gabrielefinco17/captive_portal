@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockApi } from '../api/mockApi';
+import { api } from '../api/api';
 import t from '../i18n/IT.json';
 
 function DonutChart({ data, size = 140 }) {
@@ -87,7 +87,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const load = async () => {
-      const allSessions = await mockApi.getAllSessions();
+      const allSessions = await api.getAllSessions();
       // Only show active or finished sessions to the public
       const visibleSessions = allSessions.filter(s => s.status === 'active' || s.status === 'finished');
       setSessions(visibleSessions);
@@ -106,14 +106,14 @@ export default function Dashboard() {
 
     const loadForms = async () => {
       setLoadingForms(true);
-      const sessionForms = await mockApi.getFormsBySession(Number(selectedSessionId));
+      const sessionForms = await api.getFormsBySession(Number(selectedSessionId));
       setForms(sessionForms);
       
-      const stats = await mockApi.getPresenceStats(Number(selectedSessionId));
+      const stats = await api.getPresenceStats(Number(selectedSessionId));
       setAttendanceStats(stats);
 
       if (sessionForms.length > 0) {
-        const stats = await mockApi.getBulkVoteStats(sessionForms.map(f => f.id));
+        const stats = await api.getBulkVoteStats(sessionForms.map(f => f.id));
         setVoteStats(stats);
       } else {
         setVoteStats({});

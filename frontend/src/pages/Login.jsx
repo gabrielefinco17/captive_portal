@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { mockApi } from '../api/mockApi';
+import { api } from '../api/api';
 import t from '../i18n/IT.json';
 
 export default function Login() {
@@ -16,7 +16,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const user = await mockApi.login(token);
+      const user = await api.login(token);
       if (user.role === 'super_user') {
         setShowChoice(true);
       } else {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockApi } from '../api/mockApi';
+import { api } from '../api/api';
 import t from '../i18n/IT.json';
 
 export default function MeetingsList() {
@@ -23,7 +23,7 @@ export default function MeetingsList() {
 
   const fetchSessions = async () => {
     setLoading(true);
-    const allSessions = await mockApi.getAllSessions();
+    const allSessions = await api.getAllSessions();
     setSessions(allSessions);
     setLoading(false);
   };
@@ -39,7 +39,7 @@ export default function MeetingsList() {
     e.preventDefault();
     setActionLoading(true);
     try {
-      await mockApi.updateSession(editingSession.id, {
+      await api.updateSession(editingSession.id, {
         title: editTitle,
         scheduledAt: new Date(editDate).toISOString()
       });
@@ -89,7 +89,7 @@ export default function MeetingsList() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button 
-            onClick={() => mockApi.logout()} 
+            onClick={() => api.logout()} 
             style={{ width: 'auto', background: 'transparent', padding: '0', fontSize: '0.8rem', color: 'var(--danger)' }}
           >
             {t.common.logout}

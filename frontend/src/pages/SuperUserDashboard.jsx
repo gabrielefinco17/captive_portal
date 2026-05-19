@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockApi } from '../api/mockApi';
+import { api } from '../api/api';
 import t from '../i18n/IT.json';
 
 export default function SuperUserDashboard() {
@@ -28,10 +28,10 @@ export default function SuperUserDashboard() {
 
   const init = async () => {
     setLoading(true);
-    const activeSession = await mockApi.getActiveSession();
+    const activeSession = await api.getActiveSession();
     setSession(activeSession);
     if (activeSession) {
-      const activeForms = await mockApi.getForms();
+      const activeForms = await api.getForms();
       setForms(activeForms);
     }
     setLoading(false);
@@ -41,7 +41,7 @@ export default function SuperUserDashboard() {
     e.preventDefault();
     setActionLoading(true);
     try {
-      const newSession = await mockApi.createSession(sessionTitle, sessionDate || null);
+      const newSession = await api.createSession(sessionTitle, sessionDate || null);
       setSession(newSession);
       setForms([]);
       setMessage({ type: 'success', text: t.session.createdSuccess });
@@ -59,10 +59,10 @@ export default function SuperUserDashboard() {
 
     try {
       if (editingFormId) {
-        await mockApi.updateForm(editingFormId, pollTitle, pollContent);
+        await api.updateForm(editingFormId, pollTitle, pollContent);
         setMessage({ type: 'success', text: t.poll.updateSuccess });
       } else {
-        await mockApi.publishForm(pollTitle, pollContent);
+        await api.publishForm(pollTitle, pollContent);
         setMessage({ type: 'success', text: t.poll.publishedSuccess });
       }
       
@@ -70,7 +70,7 @@ export default function SuperUserDashboard() {
       setPollContent('');
       setEditingFormId(null);
       setShowPollForm(false);
-      const updatedForms = await mockApi.getForms();
+      const updatedForms = await api.getForms();
       setForms(updatedForms);
     } catch (err) {
       setMessage({ 
@@ -119,7 +119,7 @@ export default function SuperUserDashboard() {
             {t.login.goToVote}
           </button>
           <button 
-            onClick={() => mockApi.logout()} 
+            onClick={() => api.logout()} 
             style={{ width: 'auto', background: 'transparent', padding: '0 0 0 1rem', fontSize: '0.8rem', color: 'var(--danger)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
           >
             {t.common.logout}
@@ -271,7 +271,7 @@ export default function SuperUserDashboard() {
             <button 
               onClick={async () => { 
                 if(window.confirm(t.session.endConfirm)) { 
-                  await mockApi.endSession(session.id); 
+                  await api.endSession(session.id); 
                   init(); 
                 } 
               }}

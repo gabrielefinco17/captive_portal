@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockApi } from '../api/mockApi';
+import { api } from '../api/api';
 import t from '../i18n/IT.json';
 
 const VOTE_OPTIONS = [t.vote.favorevole, t.vote.nonFavorevole, t.vote.astenuto];
@@ -30,12 +30,12 @@ export default function UserDashboard() {
 
     const fetchData = async () => {
       try {
-        const activeSession = await mockApi.getActiveSession();
+        const activeSession = await api.getActiveSession();
         setSession(activeSession);
         if (activeSession) {
-          const publishedForms = await mockApi.getForms();
+          const publishedForms = await api.getForms();
           setForms(publishedForms);
-          const att = await mockApi.getUserAttendance(activeSession.id);
+          const att = await api.getUserAttendance(activeSession.id);
           setAttendanceState(att);
         }
       } catch (err) {
@@ -57,7 +57,7 @@ export default function UserDashboard() {
 
     setAttendanceLoading(true);
     try {
-      await mockApi.setAttendanceStatus(session.id, status);
+      await api.setAttendanceStatus(session.id, status);
       if (status === 'present') {
         setAttendanceState({ isPresent: true, hasExited: false });
       } else if (status === 'exited') {
@@ -81,7 +81,7 @@ export default function UserDashboard() {
     
     setSubmitting(formId);
     try {
-      await mockApi.submitVote(formId, option);
+      await api.submitVote(formId, option);
       const updatedVotes = { ...votes, [formId]: option };
       setVotes(updatedVotes);
       localStorage.setItem('cp_user_votes', JSON.stringify(updatedVotes));
@@ -120,7 +120,7 @@ export default function UserDashboard() {
             </button>
           )}
           <button 
-            onClick={() => mockApi.logout()} 
+            onClick={() => api.logout()} 
             style={{ width: 'auto', background: 'transparent', padding: '0 0 0 1rem', fontSize: '0.8rem', color: 'var(--danger)', borderLeft: JSON.parse(localStorage.getItem('cp_user_data'))?.role === 'super_user' ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
           >
             {t.common.logout}
