@@ -651,6 +651,14 @@ def logout(authorization: str = Header(...)):
         if conn:
             conn.close()
 
+@app.get("/useremail")
+def get_email(request: Request):
+    usr = check_token(request.headers.get("Authorization"))
+    if usr:
+        return {"email": usr[0]}
+    else:
+        return {"email": "NO_SUCH_USER"}
+
 
 # -----------------------------------------------------------
 # UTILITIES
