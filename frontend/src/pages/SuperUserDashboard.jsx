@@ -127,6 +127,22 @@ export default function SuperUserDashboard() {
         </div>
       </div>
 
+      {message.text && (
+        <div className={`message-banner ${message.type}`} style={{
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          backgroundColor: message.type === 'success' ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)',
+          color: message.type === 'success' ? '#2ecc71' : '#e74c3c',
+          border: `1px solid ${message.type === 'success' ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)'}`,
+          width: '100%',
+          textAlign: 'center',
+          boxSizing: 'border-box'
+        }}>
+          {message.text}
+        </div>
+      )}
+
       <div className="dashboard-card glass fade-in">
         {!session ? (
           <div className="fade-in">

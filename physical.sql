@@ -71,6 +71,7 @@ CREATE TABLE token(
 CREATE TABLE participation(
     meeting_id INTEGER,
     user_email VARCHAR(40),
+    has_exited BOOLEAN DEFAULT FALSE,
 
     PRIMARY KEY (meeting_id, user_email),
 

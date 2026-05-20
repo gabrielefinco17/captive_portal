@@ -104,21 +104,13 @@ export const api = {
     const min = String(dateObj.getMinutes()).padStart(2, '0');
     const start_time = `${hh}:${min}:00`;
 
-    // Calculate end_time (2 hours later): HH:MM:SS
-    const endHour = String((dateObj.getHours() + 2) % 24).padStart(2, '0');
-    const end_time = `${endHour}:${min}:00`;
-
-    const president_email = getEmail() || 'mario.rossi@school.it';
-
     // Call real FastAPI create_meeting
     const response = await fetch(`${BASE_URL}/create_meeting`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
         meeting_date,
-        start_time,
-        end_time,
-        president_email
+        start_time
       })
     });
 
@@ -145,6 +137,17 @@ export const api = {
   },
 
   async endSession(sessionId) {
+    const response = await fetch(`${BASE_URL}/meetings/${sessionId}/end`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(t.session.endError || 'Error ending session');
+    }
+    const data = await response.json();
+    if (data.end_status !== 'OK') {
+      throw new Error(data.error || 'Access Denied');
+    }
     return { success: true };
   },
 
@@ -169,17 +172,17 @@ export const api = {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (response.ok) {
-            const row = await response.json();
-            if (row && Array.isArray(row)) {
+            const data = await response.json();
+            if (data && data.id !== undefined) {
               sessions.push({
-                id: row[0],
-                title: `Collegio Docenti - ${row[1]}`,
-                date: row[1],
-                createdAt: `${row[1]}T${row[2]}`,
-                scheduledAt: `${row[1]}T${row[2]}`,
-                status: row[3] ? 'finished' : 'active',
-                president_email: row[4],
-                presenti: row[5] || 0
+                id: data.id,
+                title: `Collegio Docenti - ${data.meeting_date}`,
+                date: data.meeting_date,
+                createdAt: `${data.meeting_date}T${data.start_time}`,
+                scheduledAt: `${data.meeting_date}T${data.start_time}`,
+                status: (data.end_time && data.end_time !== 'None') ? 'finished' : 'active',
+                president_email: data.president_email,
+                presenti: data.participant_count || 0
               });
             }
           }
@@ -272,29 +275,40 @@ export const api = {
   },
 
   async submitVote(formId, option) {
+    const response = await fetch(`${BASE_URL}/submit_vote`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        proposal_id: Number(formId),
+        preference: option
+      })
+    });
+    if (!response.ok) {
+      throw new Error(t.vote.error);
+    }
+    const data = await response.json();
+    if (data.vote_status !== 'OK') {
+      throw new Error(data.error || 'Access Denied');
+    }
     return { success: true, message: t.api.voteSuccess };
   },
 
   async getVoteStats(formId) {
     const token = getToken() || PUBLIC_TOKEN;
-    // Call the real backend proposals stats endpoint
     const response = await fetch(`${BASE_URL}/proposals/${formId}/stats`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) return { favorevole: 0, 'non favorevole': 0, astenuto: 0 };
     
-    const row = await response.json();
-    if (row && Array.isArray(row)) {
-      const participantCount = row[2] || 0;
-      // Map actual meeting participants to statistics
-      return {
-        favorevole: Math.ceil(participantCount * 0.6),
-        'non favorevole': Math.floor(participantCount * 0.3),
-        astenuto: Math.max(0, participantCount - Math.ceil(participantCount * 0.6) - Math.floor(participantCount * 0.3))
-      };
+    const data = await response.json();
+    if (data.read_status === 'NOT_FOUND' || data.read_status === 'NO_AUTH') {
+      return { favorevole: 0, 'non favorevole': 0, astenuto: 0 };
     }
-
-    return { favorevole: 0, 'non favorevole': 0, astenuto: 0 };
+    return {
+      favorevole: data.favorevole || 0,
+      'non favorevole': data.non_favorevole || 0,
+      astenuto: data.astenuto || 0
+    };
   },
 
   async getBulkVoteStats(formIds) {
@@ -308,11 +322,32 @@ export const api = {
   },
 
   async setAttendanceStatus(sessionId, status) {
+    const response = await fetch(`${BASE_URL}/meetings/${sessionId}/attendance`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ status })
+    });
+    if (!response.ok) {
+      throw new Error('Error updating presence');
+    }
+    const data = await response.json();
+    if (data.attendance_status !== 'OK') {
+      throw new Error(data.error || 'Access Denied');
+    }
     return { success: true, message: t.api.presenceSuccess };
   },
 
   async getUserAttendance(sessionId) {
-    return { isPresent: true, hasExited: false };
+    const token = getToken() || PUBLIC_TOKEN;
+    const response = await fetch(`${BASE_URL}/meetings/${sessionId}/attendance`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) return { isPresent: false, hasExited: false };
+    const data = await response.json();
+    return {
+      isPresent: data.isPresent || false,
+      hasExited: data.hasExited || false
+    };
   },
 
   async getPresenceStats(sessionId) {
@@ -322,10 +357,10 @@ export const api = {
     });
     if (!response.ok) return { secondi: 0, presenti: 0 };
     
-    const row = await response.json();
-    if (row && Array.isArray(row)) {
+    const data = await response.json();
+    if (data && data.participant_count !== undefined) {
       return {
-        presenti: row[5] || 0
+        presenti: data.participant_count || 0
       };
     }
     return { presenti: 0 };
