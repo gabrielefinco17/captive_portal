@@ -1,6 +1,7 @@
 from typing import Literal
 import psycopg2
 from fastapi import FastAPI, Request, Header
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 
@@ -113,11 +114,11 @@ def login(request: LoginRequest):
             cursor.connection.commit()
             return {"login_status": "OK"}
         else:
-            return {"login_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"login_status": "NO_AUTH"})
     except Exception as e:
         if cursor:
             cursor.connection.rollback()
-        return {"error": f"Internal server error: {str(e)}"}
+        return JSONResponse(status_code=500, content={"error": f"Internal server error: {str(e)}"})
     finally:
         if cursor:
             cursor.close()
@@ -126,10 +127,10 @@ def login(request: LoginRequest):
 
 
 @app.post("/meeting")
-def create_meeting(request: MeetingCreate, authorization: str = Header(...)):
+def create_meeting(request: MeetingCreate, token: str = Header(...)):
     conn = None
     cursor = None
-    user = check_token(authorization.replace("Bearer ", ""))
+    user = check_token(token)
     if user:
         if user[1] == "principal":
             conn = psycopg2.connect(
@@ -162,21 +163,21 @@ def create_meeting(request: MeetingCreate, authorization: str = Header(...)):
                 return {"create_status": "OK"}
             except Exception:
                 cursor.connection.rollback()
-                return {"error": "Internal server error"}
+                return JSONResponse(status_code=500, content={"error": "Internal server error"})
             finally:
                 cursor.close()
                 conn.close()
         else:
-            return {"create_status": "FORBIDDEN"}
+            return JSONResponse(status_code=403, content={"create_status": "FORBIDDEN"})
     else:
-        return {"create_status": "NO_AUTH"}
+        return JSONResponse(status_code=401, content={"create_status": "NO_AUTH"})
 
 
 @app.post("/proposal")
-def create_proposal(request: ProposalCreate, authorization: str = Header(...)):
+def create_proposal(request: ProposalCreate, token: str = Header(...)):
     conn = None
     cursor = None
-    user = check_token(authorization.replace("Bearer ", ""))
+    user = check_token(token)
     if user:
         if user[1] == "principal":
             conn = psycopg2.connect(
@@ -209,21 +210,21 @@ def create_proposal(request: ProposalCreate, authorization: str = Header(...)):
                 return {"insert_status": "OK"}
             except Exception:
                 cursor.connection.rollback()
-                return {"error": "Internal server error"}
+                return JSONResponse(status_code=500, content={"error": "Internal server error"})
             finally:
                 cursor.close()
                 conn.close()
         else:
-            return {"insert_status": "FORBIDDEN"}
+            return JSONResponse(status_code=403, content={"insert_status": "FORBIDDEN"})
     else:
-        return {"insert_status": "NO_AUTH"}
+        return JSONResponse(status_code=401, content={"insert_status": "NO_AUTH"})
 
 
 @app.put("/proposal")
-def update_proposal(request: ProposalUpdate, proposal_id: int, authorization: str = Header(...)):
+def update_proposal(request: ProposalUpdate, proposal_id: int, token: str = Header(...)):
     conn = None
     cursor = None
-    user = check_token(authorization.replace("Bearer ", ""))
+    user = check_token(token)
     if user:
         if user[1] == "principal":
             conn = psycopg2.connect(
@@ -252,18 +253,21 @@ def update_proposal(request: ProposalUpdate, proposal_id: int, authorization: st
                         proposal_id,
                     ]
                 )
+                if cursor.rowcount == 0:
+                    cursor.connection.rollback()
+                    return JSONResponse(status_code=404, content={"update_status": "NOT_FOUND"})
                 cursor.connection.commit()
                 return {"update_status": "OK"}
             except Exception:
                 cursor.connection.rollback()
-                return {"error": "Internal server error"}
+                return JSONResponse(status_code=500, content={"error": "Internal server error"})
             finally:
                 cursor.close()
                 conn.close()
         else:
-            return {"update_status": "FORBIDDEN"}
+            return JSONResponse(status_code=403, content={"update_status": "FORBIDDEN"})
     else:
-        return {"update_status": "NO_AUTH"}
+        return JSONResponse(status_code=401, content={"update_status": "NO_AUTH"})
 
 
 @app.get("/proposal")
@@ -293,9 +297,9 @@ def read_all_proposals(request: Request):
                 }
             return list_tup
         else:
-            return {"read_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"read_status": "NO_AUTH"})
     except Exception:
-        return {"error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
     finally:
         if cursor:
             cursor.close()
@@ -338,9 +342,9 @@ def meeting_proposals(meeting_id: int, request: Request):
                 }
             return list_tup
         else:
-            return {"read_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"read_status": "NO_AUTH"})
     except Exception:
-        return {"error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
     finally:
         if cursor:
             cursor.close()
@@ -348,7 +352,7 @@ def meeting_proposals(meeting_id: int, request: Request):
             conn.close()
 
 
-@app.get("/proposal/{id}/stats")
+@app.get("/proposal/{proposal_id}/stats")
 def proposals_stats(proposal_id: int, request: Request):
     conn = None
     cursor = None
@@ -376,16 +380,16 @@ def proposals_stats(proposal_id: int, request: Request):
                 [proposal_id]
             )
             result = cursor.fetchone()
-            dict = {
-                'meeting_id' : result[0],
+            result_dict = {
+                'proposal_id' : result[0],
                 'title' : result[1],
                 'number_of_participants' : result[2]
             }
-            return dict
+            return result_dict
         else:
-            return {"read_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"read_status": "NO_AUTH"})
     except Exception:
-        return {"error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
     finally:
         if cursor:
             cursor.close()
@@ -414,7 +418,7 @@ def read_proposal(proposal_id: int, request: Request):
             )
             row = cursor.fetchone()
             if row is None:
-                return {"read_status": "NOT_FOUND"}
+                return JSONResponse(status_code=404, content={"read_status": "NOT_FOUND"})
             return {
                 "proposal_id": row[0],
                 "title": row[1],
@@ -423,9 +427,9 @@ def read_proposal(proposal_id: int, request: Request):
                 "meeting_id": row[4],
             }
         else:
-            return {"read_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"read_status": "NO_AUTH"})
     except Exception:
-        return {"error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
     finally:
         if cursor:
             cursor.close()
@@ -433,7 +437,7 @@ def read_proposal(proposal_id: int, request: Request):
             conn.close()
 
 
-@app.get("/meeting/{id}/stats")
+@app.get("/meeting/{meeting_id}/stats")
 def meetings_stats(meeting_id: int, request: Request):
     conn = None
     cursor = None
@@ -460,7 +464,7 @@ def meetings_stats(meeting_id: int, request: Request):
                 [meeting_id]
             )
             result = cursor.fetchone()
-            dict = {
+            result_dict = {
                 'meeting_id' : result[0],
                 'date' : result[1],
                 'start_time' : result[2],
@@ -468,11 +472,11 @@ def meetings_stats(meeting_id: int, request: Request):
                 'principal_email' : result[4],
                 'number_of_participants' : result[5]
             }
-            return dict
+            return result_dict
         else:
-            return {"read_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"read_status": "NO_AUTH"})
     except Exception:
-        return {"error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
     finally:
         if cursor:
             cursor.close()
@@ -481,8 +485,7 @@ def meetings_stats(meeting_id: int, request: Request):
 
 
 @app.post("/logout")
-def logout(authorization: str = Header(...)):
-    token = authorization.replace("Bearer ", "")
+def logout(token: str = Header(...)):
     conn = None
     cursor = None
     try:
@@ -507,11 +510,11 @@ def logout(authorization: str = Header(...)):
             cursor.connection.commit()
             return {"logout_status": "OK"}
         else:
-            return {"logout_status": "NO_AUTH"}
+            return JSONResponse(status_code=401, content={"logout_status": "NO_AUTH"})
     except Exception:
         if cursor:
             cursor.connection.rollback()
-        return {"error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
     finally:
         if cursor:
             cursor.close()
@@ -525,7 +528,7 @@ def get_email(request: Request):
     if usr:
         return {"email": usr[0]}
     else:
-        return {"email": "NO_SUCH_USER"}
+        return JSONResponse(status_code=401, content={"email": "NO_SUCH_USER"})
 
 
 # -----------------------------------------------------------
@@ -555,7 +558,7 @@ def check_token(tok: str):
             """,
             [tok]
         )
-        return cursor.fetchone()  # None if not found
+        return cursor.fetchone()
     except Exception as e:
         print(f"check_token FAILED: {type(e).__name__}: {e}")
         if cursor:
