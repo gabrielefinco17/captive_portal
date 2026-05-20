@@ -112,7 +112,11 @@ def login(request: LoginRequest):
                 [request.token]
             )
             cursor.connection.commit()
-            return {"login_status": "OK"}
+            return {
+                "login_status": "OK",
+                "email": user[0],
+                "user_role": user[1]
+            }
         else:
             return JSONResponse(status_code=401, content={"login_status": "NO_AUTH"})
     except Exception as e:
@@ -171,6 +175,34 @@ def create_meeting(request: MeetingCreate, token: str = Header(...)):
             return JSONResponse(status_code=403, content={"create_status": "FORBIDDEN"})
     else:
         return JSONResponse(status_code=401, content={"create_status": "NO_AUTH"})
+    
+
+@app.get("/meeting")
+def read_all_meetings(request: Request):
+    conn = None
+    cursor = None
+    try:
+        conn = psycopg2.connect(
+            database="captive_portal",
+            user="user",
+            password=get_password("user"),
+            host=host_ip,
+            port=port
+        )
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+                SELECT * FROM meeting
+            """
+        )
+        return {"meetings": cursor.fetchall()}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Internal server error: {str(e)}"})
+    finally:
+        if cursor: 
+            cursor.close()
+        if conn: 
+            conn.close()
 
 
 @app.post("/proposal")
