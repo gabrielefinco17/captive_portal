@@ -109,7 +109,7 @@ CREATE TABLE vote(
 
 CREATE ROLE teacher LOGIN PASSWORD 'praga';
 GRANT SELECT ON meeting, proposal, account TO teacher;
-GRANT SELECT, INSERT ON participation TO teacher;
+GRANT SELECT, INSERT, UPDATE ON participation TO teacher;
 GRANT SELECT, INSERT ON vote TO teacher;
 GRANT SELECT ON token TO teacher;
 
