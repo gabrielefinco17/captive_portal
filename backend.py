@@ -125,7 +125,7 @@ def login(request: LoginRequest):
             conn.close()
 
 
-@app.post("/create_meeting")
+@app.post("/meeting")
 def create_meeting(request: MeetingCreate, authorization: str = Header(...)):
     conn = None
     cursor = None
@@ -172,7 +172,7 @@ def create_meeting(request: MeetingCreate, authorization: str = Header(...)):
         return {"create_status": "NO_AUTH"}
 
 
-@app.post("/create_proposal")
+@app.post("/proposal")
 def create_proposal(request: ProposalCreate, authorization: str = Header(...)):
     conn = None
     cursor = None
@@ -219,8 +219,8 @@ def create_proposal(request: ProposalCreate, authorization: str = Header(...)):
         return {"insert_status": "NO_AUTH"}
 
 
-@app.put("/update_proposal")
-def update_proposal(request: ProposalUpdate, id: int, authorization: str = Header(...)):
+@app.put("/proposal")
+def update_proposal(request: ProposalUpdate, proposal_id: int, authorization: str = Header(...)):
     conn = None
     cursor = None
     user = check_token(authorization.replace("Bearer ", ""))
@@ -249,7 +249,7 @@ def update_proposal(request: ProposalUpdate, id: int, authorization: str = Heade
                         request.proposal_description,
                         request.attachment,
                         request.meeting_id,
-                        id,
+                        proposal_id,
                     ]
                 )
                 cursor.connection.commit()
@@ -266,7 +266,7 @@ def update_proposal(request: ProposalUpdate, id: int, authorization: str = Heade
         return {"update_status": "NO_AUTH"}
 
 
-@app.get("/read_proposal")
+@app.get("/proposal")
 def read_all_proposals(request: Request):
     conn = None
     cursor = None
@@ -292,46 +292,6 @@ def read_all_proposals(request: Request):
                     "meeting_id": list_tup[i][4],
                 }
             return list_tup
-        else:
-            return {"read_status": "NO_AUTH"}
-    except Exception:
-        return {"error": "Internal server error"}
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@app.get("/read_proposal/{proposal_id}")
-def read_proposal(proposal_id: int, request: Request):
-    conn = None
-    cursor = None
-    try:
-        user = check_token(request.headers.get("Authorization"))
-        if user:
-            conn = psycopg2.connect(
-                database="captive_portal",
-                user=user[1],
-                password=get_password(user[1]),
-                host=host_ip,
-                port=port
-            )
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM proposal WHERE id = %s",
-                [proposal_id]
-            )
-            row = cursor.fetchone()
-            if row is None:
-                return {"read_status": "NOT_FOUND"}
-            return {
-                "id": row[0],
-                "title": row[1],
-                "proposal_description": row[2],
-                "attachment": row[3],
-                "meeting_id": row[4],
-            }
         else:
             return {"read_status": "NO_AUTH"}
     except Exception:
@@ -388,8 +348,8 @@ def meeting_proposals(meeting_id: int, request: Request):
             conn.close()
 
 
-@app.get("/proposals/{id}/stats")
-def proposals_stats(id: int, request: Request):
+@app.get("/proposal/{id}/stats")
+def proposals_stats(proposal_id: int, request: Request):
     conn = None
     cursor = None
     try:
@@ -413,7 +373,7 @@ def proposals_stats(id: int, request: Request):
                     WHERE p.id = %s
                     GROUP BY p.id, p.title
                 """,
-                [id]
+                [proposal_id]
             )
             result = cursor.fetchone()
             dict = {
@@ -433,8 +393,48 @@ def proposals_stats(id: int, request: Request):
             conn.close()
 
 
-@app.get("/meetings/{id}/stats")
-def meetings_stats(id: int, request: Request):
+@app.get("/proposal/{proposal_id}")
+def read_proposal(proposal_id: int, request: Request):
+    conn = None
+    cursor = None
+    try:
+        user = check_token(request.headers.get("Authorization"))
+        if user:
+            conn = psycopg2.connect(
+                database="captive_portal",
+                user=user[1],
+                password=get_password(user[1]),
+                host=host_ip,
+                port=port
+            )
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM proposal WHERE id = %s",
+                [proposal_id]
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return {"read_status": "NOT_FOUND"}
+            return {
+                "proposal_id": row[0],
+                "title": row[1],
+                "proposal_description": row[2],
+                "attachment": row[3],
+                "meeting_id": row[4],
+            }
+        else:
+            return {"read_status": "NO_AUTH"}
+    except Exception:
+        return {"error": "Internal server error"}
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.get("/meeting/{id}/stats")
+def meetings_stats(meeting_id: int, request: Request):
     conn = None
     cursor = None
     try:
@@ -457,7 +457,7 @@ def meetings_stats(id: int, request: Request):
                     WHERE m.id = %s
                     GROUP BY m.id
                 """,
-                [id]
+                [meeting_id]
             )
             result = cursor.fetchone()
             dict = {
@@ -517,6 +517,7 @@ def logout(authorization: str = Header(...)):
             cursor.close()
         if conn:
             conn.close()
+
 
 @app.get("/useremail")
 def get_email(request: Request):
