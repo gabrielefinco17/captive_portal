@@ -405,15 +405,23 @@ def proposals_stats(id: int, request: Request):
             cursor = conn.cursor()
             cursor.execute(
                 """
-                    SELECT p.id, p.title, m.participant_count
+                    SELECT p.id, p.title,
+                           COUNT(pa.user_email) AS participant_count
                     FROM proposal p
                     LEFT JOIN meeting m ON p.meeting_id = m.id
+                    LEFT JOIN participation pa ON m.id = pa.meeting_id
                     WHERE p.id = %s
-                    ORDER BY p.id
+                    GROUP BY p.id, p.title
                 """,
                 [id]
             )
-            return cursor.fetchone()
+            result = cursor.fetchone()
+            dict = {
+                'meeting_id' : result[0],
+                'title' : result[1],
+                'number_of_participants' : result[2]
+            }
+            return dict
         else:
             return {"read_status": "NO_AUTH"}
     except Exception:
@@ -442,7 +450,8 @@ def meetings_stats(id: int, request: Request):
             cursor = conn.cursor()
             cursor.execute(
                 """
-                    SELECT m.id, m.meeting_date, m.start_time, m.end_time, m.president_email, m.participant_count
+                    SELECT m.id, m.meeting_date, m.start_time, m.end_time, m.president_email,
+                           COUNT(p.user_email) AS participant_count
                     FROM meeting m
                     LEFT JOIN participation p ON m.id = p.meeting_id
                     WHERE m.id = %s
@@ -450,7 +459,16 @@ def meetings_stats(id: int, request: Request):
                 """,
                 [id]
             )
-            return cursor.fetchone()
+            result = cursor.fetchone()
+            dict = {
+                'meeting_id' : result[0],
+                'date' : result[1],
+                'start_time' : result[2],
+                'end_time' : result[3],
+                'principal_email' : result[4],
+                'number_of_participants' : result[5]
+            }
+            return dict
         else:
             return {"read_status": "NO_AUTH"}
     except Exception:
